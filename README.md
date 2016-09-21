@@ -29,7 +29,7 @@ data_prime = bf.load(bin_key)
 print(data_prime)
 ```
 
-Further any class that implements __getstate__ may be used as a container as well. When reconstructing, the class needs to have the __setstate__ method implemented.
+Further any class that implements `__getstate__` may be used as a container as well. When reconstructing, the class needs to have the `__setstate__` method implemented.
 Additionally the `bf.load` function required a mapping from the class name to the class object, like this:
 ```python
 
