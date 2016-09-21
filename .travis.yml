@@ -1,0 +1,25 @@
+language: python
+
+notifications:
+  email: false
+
+python:
+- '2.7'
+- '3.4'
+- '3.5'
+
+before_install:
+- which python
+- python --version
+
+install:
+- pip install numpy
+- pip install pytest pytest-cov
+- pip install python-coveralls
+- pip freeze
+
+script:
+- py.test tests/ -v --cov=binfootprint --cov-report term-missing
+
+after_success:
+- coveralls
