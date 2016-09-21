@@ -8,12 +8,15 @@ import sys
 if sys.version_info.major > 2:
     import pathlib
     path = pathlib.PosixPath(__file__).absolute()
-    jobmanager = path.parent.parent
-    sys.path.insert(0, str(jobmanager))
+    bf_package = path.parent.parent
+    print(bf_package)
+    sys.path.insert(0, str(bf_package))
 else:
     from os.path import abspath, dirname, split
     # Add parent directory to beginning of path variable
     sys.path = [split(dirname(abspath(__file__)))[0]] + sys.path
+
+print(sys.path[0])
 
 import binfootprint as bfp
 
