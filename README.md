@@ -1,7 +1,7 @@
 # binfootprint
 
 [![Build Status](https://travis-ci.org/cimatosa/binfootprint.svg?branch=master)](https://travis-ci.org/cimatosa/binfootprint)
-
+[![Coverage Status](https://coveralls.io/repos/github/cimatosa/binfootprint/badge.svg?branch=master)](https://coveralls.io/github/cimatosa/binfootprint?branch=master)
 
 Calculate a unique binary representation (binary footprint) for simple data structures 
 with the intension to use this binary footprint as a loop up key for example in a data base.
