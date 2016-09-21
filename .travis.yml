@@ -17,6 +17,8 @@ install:
 - pip install pytest pytest-cov
 - pip install python-coveralls
 - pip freeze
+- pwd
+- ls
 
 script:
 - py.test tests/ -v --cov=binfootprint --cov-report term-missing
