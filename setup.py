@@ -5,12 +5,11 @@
 
 from setuptools import setup
 
-
 author = u"Richard Hartmann"
 authors = [author]
 description = 'binary representation for simple data structured'
 name = 'binfootprint'
-version = '0.1'
+version = '0.1.0'
 
 if __name__ == "__main__":
     setup(
