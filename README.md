@@ -1,5 +1,6 @@
 # binfootprint
 
+[![PyPI version](https://badge.fury.io/py/binfootprint.svg)](https://badge.fury.io/py/binfootprint)
 [![Build Status](https://travis-ci.org/cimatosa/binfootprint.svg?branch=master)](https://travis-ci.org/cimatosa/binfootprint)
 [![codecov](https://codecov.io/gh/cimatosa/binfootprint/branch/master/graph/badge.svg)](https://codecov.io/gh/cimatosa/binfootprint)
 
