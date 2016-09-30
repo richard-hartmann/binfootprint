@@ -46,7 +46,7 @@ _INT_32     = 0x01
 _FLOAT      = 0x02
 _COMPLEX    = 0x03
 _STR        = 0x04
-_BYTES      = 0x05
+_BYTES      = 0x05    # only for python3, as bytes and str are equivalent in python2
 _INT        = 0x06
 _TUPLE      = 0x07
 _NAMEDTUPLE = 0x08 
@@ -55,7 +55,6 @@ _LIST       = 0x0a
 _GETSTATE   = 0x0b
 _DICT       = 0x0c
 _INT_NEG    = 0x0d
-_BFSTATE    = 0x0e
 
 _VERS       = 0x80
 def getVersion():
@@ -157,7 +156,7 @@ def _load_spec(b):
     elif b[1] == char_to_byte('N'):
         return None, 2   
     else:
-        raise BFLoadError("unknown code for 'special' {}".format(b[1]))
+        raise BFLoadError("internal error (unknown code for 'special' {})".format(b[1]))
     
 def _dump_int_32(ob):
     b = init_BYTES([_INT_32])
@@ -188,7 +187,7 @@ def _load_int(b):
     elif comp_id(b[0], _INT_NEG):
         m = -1
     else:
-        assert False
+        raise BFLoadError("internal error (unknown int id {})".format(b[0]))
     num_bytes = struct.unpack('>I', b[1:5])[0]
     i = m*bytes_to_int(b[5:5+num_bytes])
     return i, num_bytes + 5
@@ -233,10 +232,7 @@ def _dump_bytes(ob):
     b = init_BYTES([_BYTES])
     num_bytes = len(ob)
     b += struct.pack('>I', num_bytes)
-    if isinstance(b, str):
-        b += str(ob)
-    else:
-        b += ob
+    b += ob
     return b
 
 def _load_bytes(b):
@@ -339,14 +335,6 @@ def _dump_getstate(ob):
     
     return b
 
-# def _dump_bfstate(ob):
-#     b = init_BYTES([_BFSTATE])
-#     state = ob.__bfstate__()
-#     obj_type = ob.__class__.__name__
-#     b += _dump(str(obj_type))
-#     b += _dump(state)
-#     return b
-
 def _load_getstate(b, classes):
     assert comp_id(b[0], _GETSTATE)
     obj_type, l_obj_type = _load_str(b[1:])
@@ -407,11 +395,9 @@ def _dump(ob):
     elif isinstance(ob, dict):
         return _dump_dict(ob)    
     elif hasattr(ob, '__getstate__'):
-        return _dump_getstate(ob)    
-    elif hasattr(ob, '__bfstate__'):
-        return _dump_bfstate(ob)    
+        return _dump_getstate(ob)
     else:
-        raise RuntimeError("unsupported type for dump '{}'".format(type(ob)))
+        raise TypeError("unsupported type for dump '{}'".format(type(ob)))
     
 def _load(b, classes):
     identifier = b[0]
@@ -443,17 +429,15 @@ def _load(b, classes):
         return _load_dict(b, classes)    
     elif identifier == _GETSTATE:
         return _load_getstate(b, classes)
-    elif identifier == _BFSTATE:
-        raise BFLoadError("BFSTATE objects can not be loaded")
     else:
-        raise BFLoadError("unknown identifier '{}'".format(hex(identifier)))
+        raise BFLoadError("internal error (unknown identifier '{}')".format(hex(identifier)))
     
 def dump(ob, vers=_VERS):
     """
         returns the binary footprint of the object 'ob' as bytes
     """
-    global _dump    
-    if vers == _VERS:
+    global _dump                                  # allows to temporally overwrite the global _dump
+    if vers == _VERS:                             # to dump using different version
         return init_BYTES([_VERS]) + _dump(ob)
     elif vers < 0x80:
         __dump_tmp = _dump
@@ -485,7 +469,7 @@ def load(b, classes={}):
         
         return res
     else:
-        raise RuntimeError("unknown version tag found!")
+        raise BFLoadError("internal error (unknown version tag {})".format(vers))
     
     
 ##################################################################
@@ -498,6 +482,11 @@ def load(b, classes={}):
 # to be < 128 = 0x80
     
 def _load_namedtuple_00(b, classes):
+    """
+        need to explicitly know the named tuple class for reconstruction
+
+        later version creates its own named tuple
+    """
     assert comp_id(b[0], _NAMEDTUPLE)
     size = struct.unpack('>I', b[1:5])[0]
     class_name, len_ob = _load_str(b[5:])
