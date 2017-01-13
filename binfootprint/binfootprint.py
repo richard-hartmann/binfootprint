@@ -52,9 +52,10 @@ _TUPLE      = 0x07
 _NAMEDTUPLE = 0x08 
 _NPARRAY    = 0x09
 _LIST       = 0x0a
-_GETSTATE   = 0x0b
+_GETSTATE   = 0x0b    # only used when __bfkey__ is not present
 _DICT       = 0x0c
 _INT_NEG    = 0x0d
+_BFKEY      = 0x0e    # a special BF-Key member __bfkey__ is used if implemented, uses __getstate__ as fallback
 
 _VERS       = 0x80
 def getVersion():
@@ -326,6 +327,20 @@ def _load_np_array(b):
     npa = np_load(b[5: size+5])
     return npa, size+5
 
+def _dump_bfkey(ob):
+    b = init_BYTES([_BFKEY])
+    bfkey = ob.__bfkey__()
+    obj_type = ob.__class__.__name__
+    b += _dump(str(obj_type))
+    b += _dump(bfkey)
+    return b
+
+def _load_bfkey(b, classes):
+    assert comp_id(b[0], _BFKEY)
+    obj_type, l_obj_type = _load_str(b[1:])
+    bfkey, l_state = _load(b[l_obj_type+1:], classes)
+    return (obj_type, bfkey), l_obj_type+l_state+1
+
 def _dump_getstate(ob):
     b = init_BYTES([_GETSTATE]) 
     state = ob.__getstate__()
@@ -393,7 +408,9 @@ def _dump(ob):
     elif isinstance(ob, np.ndarray):
         return _dump_np_array(ob)
     elif isinstance(ob, dict):
-        return _dump_dict(ob)    
+        return _dump_dict(ob)
+    elif hasattr(ob, '__bfkey__'):
+        return _dump_bfkey(ob)
     elif hasattr(ob, '__getstate__'):
         return _dump_getstate(ob)
     else:
@@ -426,7 +443,9 @@ def _load(b, classes):
     elif identifier == _NPARRAY:
         return _load_np_array(b)
     elif identifier == _DICT:
-        return _load_dict(b, classes)    
+        return _load_dict(b, classes)
+    elif identifier == _BFKEY:
+        return _load_bfkey(b, classes)
     elif identifier == _GETSTATE:
         return _load_getstate(b, classes)
     else:
