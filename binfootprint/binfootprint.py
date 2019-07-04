@@ -33,6 +33,7 @@ from __future__ import division, print_function
           is the same among different python versions (they should be though!)    
 """
 
+
 from collections import namedtuple
 from math import ceil
 import numpy as np
@@ -142,6 +143,41 @@ class BFUnkownClassError(Exception):
         Exception.__init__(self, "could not load object of type '{}', no class definition found in classes\n".format(classname)+
                                  "Please provide the lookup 'classes' when calling load, that maps the class name of the object to the actual "+
                                  "class definition (class object).")
+
+
+class ABS_Parameter(object):
+
+    __slots__ = ['__non_key__']
+
+    def __init__(self):
+        pass
+
+    def __bfkey__(self):
+        key = []
+        sorted_slots = sorted(self.__slots__)
+        if '__non_key__' in sorted_slots: sorted_slots.remove('__non_key__')
+        for k in sorted_slots:
+            atr = getattr(self, k)
+            if atr is not None:
+                key.append((k, atr))
+        return key
+
+    def __repr__(self):
+        s = ""
+        sorted_slots = sorted(self.__slots__)
+        if '__non_key__' in sorted_slots: sorted_slots.remove('__non_key__')
+        max_l = max([len(k) for k in sorted_slots])
+        for k in sorted_slots:
+            atr = getattr(self, k)
+            if atr is not None:
+                s += "{1:>{0}} : {2}\n".format(max_l, k, atr)
+        if '__non_key__' in self.__slots__:
+            s += "--- extra info ---\n"
+            keys = sorted(self.__non_key__.keys())
+            mal_l = max([k for k in keys])
+            for k in keys:
+                s += "{1:>{0}} : {2}\n".format(max_l, k, self.__non_key__[k])
+        return s
 
 def _dump_spec(ob):
     if ob == True:
