@@ -3,6 +3,20 @@ name = "binfootprint"
 version = "0.2.0"
 description = "serielize python objetcs in a deterministic way"
 authors = ["Richard Hartmann"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/cimatosa/binfootprint"
+repository = "https://github.com/cimatosa/binfootprint"
+keywords = ["serialization", "binary key"]
+classifiers = [
+    "Environment :: Console",
+    "Operating System :: OS Independent",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries",
+]
+include = [
+    "LICENSE",
+]
 
 [tool.poetry.dependencies]
 python = "~3.9"
