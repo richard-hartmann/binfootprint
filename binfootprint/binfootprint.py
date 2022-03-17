@@ -1,48 +1,5 @@
 """
-    This module intents to generate a binary representation of a python object
-    where it is guaranteed that the same objects will result in the same binary
-    representation.
-    
-    By far not all python objects are supported. Here is the list of supported types
-        
-        - special build-in constants: True, False, None
-        - integer 
-        - float (64bit)
-        - complex (128bit)
-
-    as well as
-
-        - tuples
-        - lists
-        - dictionaries
-        - namedtuple
-
-    of the above.
-
-    Also
-
-        - np.ndarray
-
-    are supported, however, as of changing details in the numpy implementation future
-    version may of numpy may break backwards compatibility.
-
-    In the current version (0.2.x) of binfootprint, a numpy array is serialized using
-    the (npy file format)[https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html#module-numpy.lib.format].
-
-
-    For any nested combination of these objects it is also guaranteed that the
-    original objects can be restored without any extra information.
-    
-    Additionally
-    
-        - 'getstate' (objects that implement __getstate__ and return a state that can be dumped as well)
-    
-    can be dumped. To Restore these objects the load function needs a lookup given by the argument 'classes'
-    which maps the objects class name (obj.__class__.__name__) to the actual class definition (the class object).
-    Of course for these objects the __setstate__ method needs to be implemented. 
-
-    Note: dumping older version is not supported anymore. If backwards compatibility is needed check out older
-    code from git. If needed converters should/will be written.
+    Implements the main functionality to dump (and also load) a selection of python objects.
 """
 
 # python imports

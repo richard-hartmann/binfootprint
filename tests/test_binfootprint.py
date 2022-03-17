@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 
 # package imports
-import binfootprint as bfp
+from binfootprint import binfootprint as bfp
 
 
 def test_version_tag():

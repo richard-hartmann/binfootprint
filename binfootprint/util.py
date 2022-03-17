@@ -1,4 +1,18 @@
+from inspect import signature
+import shelve
+from pathlib import Path
+from . import binfootprint
+from hashlib import sha256
+
+
+def get_hash_str(bin_data):
+    return sha256(bin_data).hexdigest()
+
+
 class ABS_Parameter(object):
+    """
+    needs docs and testing
+    """
 
     __slots__ = ["__non_key__"]
 
@@ -34,20 +48,49 @@ class ABS_Parameter(object):
                 s += "{1:>{0}} : {2}\n".format(max_l, k, self.__non_key__[k])
         return s
 
+
 class ShelveCacheDec:
-    def __init__(self, fnc):
+    """
+    Provides a decorator to cache the return value of a function to disk.
+
+    Use a shelve to store the data, so pickle is used to store the return object.
+    The arguments are mapped to a dictionary including the full signature of the function (with
+    default arguments). The key is constructed using the binfootprint module.
+    This means that the arguments have to be digestable by tha dump function of that module
+    (see binfootprint for details).
+    """
+    def __init__(self, path = ".cache"):
+        """
+        :param path: the path under which the database (shelve) is stored
+        """
+        self.path = Path(path).absolute()
+        self.path.mkdir(parents=True, exist_ok=True)
+
+
+    def __call__(self, fnc):
         self.fnc = fnc
         self.fnc_sig = signature(fnc)
-        self.f_name = __name__ + "_" + self.fnc.__name__
+        self.f_name = str(self.path / (self.fnc.__module__ + "." + self.fnc.__name__))
         print(self.f_name)
 
-    def __call__(self, *args, **kwargs):
-        ba = self.fnc_sig.bind(*args, **kwargs)
-        fnc_args = ba.args
-        with shelve.open(self.f_name) as db:
-            if fnc_args in db:
-                return db[fnc_args]
-            else:
-                r = self.fnc(*args, **kwargs)
-                db[fnc_args] = r
-                return r
+        def wrapper(*args, **kwargs):
+            ba = self.fnc_sig.bind(*args, **kwargs)
+            ba.apply_defaults()
+            fnc_args = ba.arguments
+            print(fnc_args)
+            fnc_args_key = get_hash_str(binfootprint.dump(fnc_args))
+            
+            with shelve.open(self.f_name) as db:
+                if fnc_args_key in db:
+                    return db[fnc_args_key]
+                else:
+                    r = self.fnc(*args, **kwargs)
+                    db[fnc_args_key] = r
+                    return r
+
+        return wrapper
+
+
+@ShelveCacheDec()
+def test_fnc(a, b):
+    return a + b

@@ -1,3 +1,2 @@
-# -*- coding: utf-8 -*-
-
-from .binfootprint import *
+from .binfootprint import dump, load, getVersion
+from .util import ShelveCacheDec, ABS_Parameter
