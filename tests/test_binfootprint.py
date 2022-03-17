@@ -1,12 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import division, print_function
-
-import sys
-from os.path import abspath, dirname, split
-# Add parent directory to beginning of path variable
-sys.path = [split(dirname(abspath(__file__)))[0]] + sys.path
-
 import binfootprint as bfp
 
 import numpy as np

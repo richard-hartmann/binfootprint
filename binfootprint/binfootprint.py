@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import division, print_function
-
 """
     This module intents to generate a binary representation of a python object
     where it is guaranteed that the same objects will result in the same binary
@@ -33,15 +30,16 @@ from __future__ import division, print_function
           is the same among different python versions (they should be though!)    
 """
 
-
+# python imports
 from collections import namedtuple
 from math import ceil
-import numpy as np
 import struct
-from sys import version_info
+
+# third party imports
+import numpy as np
 try:
     import scipy
-    from scipy.sparse import csc_matrix
+    from scipy.sparse import isspmatrix_csc
 except ImportError:
     scipy = None
 
@@ -55,7 +53,7 @@ _STR        = 0x04
 _BYTES      = 0x05    # only for python3, as bytes and str are equivalent in python2
 _INT        = 0x06
 _TUPLE      = 0x07
-_NAMEDTUPLE = 0x08 
+_NAMEDTUPLE = 0x08
 _NPARRAY    = 0x09
 _LIST       = 0x0a
 _GETSTATE   = 0x0b    # only used when __bfkey__ is not present
@@ -96,28 +94,16 @@ def byte_eq_byte(b1, b2):
  
 
 
-if version_info.major > 2:
-    BIN_TYPE = bytes
-    str_to_bytes = lambda s: bytes(s, 'utf8')
-    bytes_to_str = lambda b: str(b, 'utf8')
-    LONG_TYPE    = int
-    np_load      = lambda ba: np.loads(ba)
-    init_BYTES   = lambda b: bytes(b)
-    comp_id      = byte_eq_byte
-    char_to_byte = lambda ch: ord(ch)
-    byte_to_ord  = lambda b: b
-else:
-    BIN_TYPE = str
-    str_to_bytes = lambda s: s
-    bytes_to_str = lambda b: str(b)
-    LONG_TYPE    = long
-    np_load      = lambda ba: np.loads(str(ba))
-    init_BYTES   = lambda b: str(bytearray(b))
-    comp_id      = char_eq_byte
-    char_to_byte = lambda ch: ch
-    byte_to_ord  = lambda b: ord(b)
 
-
+BIN_TYPE = bytes
+str_to_bytes = lambda s: bytes(s, 'utf8')
+bytes_to_str = lambda b: str(b, 'utf8')
+LONG_TYPE    = int
+np_load      = lambda ba: np.load(ba, allow_pickle=False)
+init_BYTES   = lambda b: bytes(b)
+comp_id      = byte_eq_byte
+char_to_byte = lambda ch: ord(ch)
+byte_to_ord  = lambda b: b
 int_to_bytes = lambda i: i.to_bytes(ceil(i.bit_length() / 8), 'big')
 bytes_to_int = lambda ba: int.from_bytes(ba, 'big')
 
@@ -449,12 +435,7 @@ def _load_scipy_csc_matrix(b):
     l += _l
     shape, _l = _load_tuple(b[1 + l:], classes={})
     l += _l
-
-    return csc_matrix((data, indices, indptr), shape=shape), l+1
-
-
-
-
+    return scipy.csc_matrix((data, indices, indptr), shape=shape), l+1
 
 
 def _dump(ob):
@@ -488,7 +469,7 @@ def _dump(ob):
         return _dump_bfkey(ob)
     elif hasattr(ob, '__getstate__'):
         return _dump_getstate(ob)
-    elif scipy and scipy.sparse.isspmatrix_csc(ob):
+    elif scipy and isspmatrix_csc(ob):
         return _dump_scipy_csc_matrix(ob)
     else:
         raise TypeError("unsupported type for dump '{}' ({})".format(type(ob), ob))
