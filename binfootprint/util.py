@@ -71,13 +71,11 @@ class ShelveCacheDec:
         self.fnc = fnc
         self.fnc_sig = signature(fnc)
         self.f_name = str(self.path / (self.fnc.__module__ + "." + self.fnc.__name__))
-        print(self.f_name)
 
         def wrapper(*args, **kwargs):
             ba = self.fnc_sig.bind(*args, **kwargs)
             ba.apply_defaults()
             fnc_args = ba.arguments
-            print(fnc_args)
             fnc_args_key = get_hash_str(binfootprint.dump(fnc_args))
             
             with shelve.open(self.f_name) as db:
