@@ -73,6 +73,13 @@ class ShelveCacheDec:
         self.f_name = str(self.path / (self.fnc.__module__ + "." + self.fnc.__name__))
 
         def wrapper(*args, **kwargs):
+            no_cache = False
+            if '_SC_no_cache' in kwargs:
+                no_cache = kwargs['_SC_no_cache']
+                del kwargs['_SC_no_cache']
+            if no_cache:
+                return self.fnc(*args, **kwargs)
+
             ba = self.fnc_sig.bind(*args, **kwargs)
             ba.apply_defaults()
             fnc_args = ba.arguments
