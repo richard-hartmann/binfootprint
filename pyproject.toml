@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "binfootprint"
-version = "0.2.4"
+version = "0.2.5"
 description = "serielize python objetcs in a deterministic way"
 authors = ["Richard Hartmann"]
 license = "MIT"
@@ -19,9 +19,9 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "~3.9"
+python = ">=3.9,<3.11"
 numpy = "^1.22.0"
-scipy = "^1.8.0"
+scipy = "^1.7.3"
 pytest = "^7.0.0"
 
 [build-system]
