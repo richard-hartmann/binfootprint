@@ -5,8 +5,8 @@ description = "serielize python objetcs in a deterministic way"
 authors = ["Richard Hartmann"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/cimatosa/binfootprint"
-repository = "https://github.com/cimatosa/binfootprint"
+homepage = "https://github.com/richard-hartmann/binfootprint"
+repository = "https://github.com/richard-hartmann/binfootprint"
 keywords = ["serialization", "binary key"]
 classifiers = [
     "Environment :: Console",

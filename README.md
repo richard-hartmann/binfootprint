@@ -1,46 +1,49 @@
-# binfootprint
+# binfootprint - unique serialization of python objects
 
-[![PyPI version](https://badge.fury.io/py/binfootprint.svg)](https://badge.fury.io/py/binfootprint)
-[![Build Status](https://travis-ci.org/cimatosa/binfootprint.svg?branch=master)](https://travis-ci.org/cimatosa/binfootprint)
-[![codecov](https://codecov.io/gh/cimatosa/binfootprint/branch/master/graph/badge.svg)](https://codecov.io/gh/cimatosa/binfootprint)
+## Why unique serialization
 
-## Description
+When caching computationally expansive function calls, the input arguments (*args, **kwargs)
+serve as key to look up the result of the function.
+To perform efficient lookups the key (often a large number of nested python objects) needs to be hashable.
+Since python's build-in hash function is randomly seeded (and applies to a few data types only) it is not
+suited for the purpose hashing function arguments. 
+However, in order to use a general hash function, as provided by the 
+[hashlib library](https://docs.python.org/3/library/hashlib.html), the object needs to be converted to
+a sequence of bytes, which the hash function can digest.
+Surely, python's pickle module provides such a serialization which, for our purpose, has the drawback that
+the byte sequence is not guaranteed to be unique (e.g., a dictionary can be stored as different byte sequences,
+as the order of the (key, value) pairs is irrelevant).
 
-This module intents to generate a binary representation of a python object
-where it is guaranteed that the same objects will result in the same binary
-representation.
-    
-By far not all python objects are supported. Here is the list of supported types
-        
-* special build-in constants: True, False, None
+The binfootprint module fills that gap.
+It guarantees that a particular python object will have a unique binary representation. 
+
+## Which data types can be serialized
+
+Python's fundamental data types
+
 * integer 
 * float (64bit)
 * complex (128bit)
+* strings
+* byte arrays
+* special build-in constants: True, False, None
 
-as well as
+as well as their nested combination by means of the data structures
 
-- tuples
-- lists
-- dictionaries
+- tuple
+- list
+- dictionary
 - namedtuple
 
-of the above.
-
-Also
+is natively supported. In addition, also
 
 - np.ndarray
 
-are supported, however, as of changing details in the numpy implementation future
-version may of numpy may break backwards compatibility.
+are supported. The serialization makes use of numpy's 
+[format.write_array()](https://numpy.org/devdocs/reference/generated/numpy.lib.format.write_array.html) 
+function using version 1.0.
 
-In the current version (0.2.x) of binfootprint, a numpy array is serialized using
-the (npy file format)[https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html#module-numpy.lib.format].
-
-
-For any nested combination of these objects it is also guaranteed that the
-original objects can be restored without any extra information.
-
-Additionally
+Furthermore
 
 - 'getstate' (objects that implement `__getstate__ and return a state that can be dumped as well)
 

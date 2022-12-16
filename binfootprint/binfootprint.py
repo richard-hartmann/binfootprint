@@ -24,98 +24,56 @@ except ImportError:
 
 _spec_types = (bool, type(None))
 
-_SPEC = 0x00  # True, False, None
-_INT_32 = 0x01
+_SPEC = 0x00        # True, False, None
+_INT = 0x01
 _FLOAT = 0x02
 _COMPLEX = 0x03
 _STR = 0x04
-_BYTES = 0x05  # only for python3, as bytes and str are equivalent in python2
-_INT = 0x06
+_BYTES = 0x05       # only for python3, as bytes and str are equivalent in python2
+# _INT = 0x06
 _TUPLE = 0x07
 _NAMEDTUPLE = 0x08
 _NPARRAY = 0x09
 _LIST = 0x0A
-_GETSTATE = 0x0B  # only used when __bfkey__ is not present
+_GETSTATE = 0x0B    # only used when __bfkey__ is not present
 _DICT = 0x0C
-_INT_NEG = 0x0D
-_BFKEY = 0x0E  # a special BF-Key member __bfkey__ is used if implemented, uses __getstate__ as fallback
+# _INT_NEG = 0x0D
+_BFKEY = 0x0E       # a special BF-Key member __bfkey__ is used if implemented, uses __getstate__ as fallback
 _SP_CSC_MAT = 0x0F  # scipy csc sparse matrix
 
-# _VERS = 0x80     # is broken with numpy 1.22, since the dump/load API has changed
-_VERS = 0x90     # use pickle to binfootprint numpy arrays / this breaks backwards compatibility
+#_VERS = 0x90        # use pickle to binfootprint numpy arrays / this breaks backwards compatibility
+_VERS = 0x91        # unify ints / this breaks backwards compatibility
 
 __max_int32 = +2147483647
 __min_int32 = -2147483648
 
 
-
-def getVersion():
+def get_version():
+    """return the current version used for dump"""
     return _VERS
 
 
-def __int_to_bytes(i):
-    m = 0xFF
-    assert i >= 0
-    ba = str()
-    while i > 0:
-        b = i & m
-        ba += str(bytearray([b]))
-        i = i >> 8
-    return ba[::-1]
-
-
-def __bytes_to_int(ba):
-    i = 0
-    for b in ba:
-        i = i << 8
-        i += ord(b)
-    return i
-
-
 def char_eq_byte(ch, b):
+    """True if the ASCII value of 'ch' corresponds to 'b'"""
     return ord(ch) == b
 
 
 def byte_eq_byte(b1, b2):
+    """True if the two bytes 'b1' and 'b2' are equal"""
     return b1 == b2
 
-
-BIN_TYPE = bytes
-str_to_bytes = lambda s: bytes(s, "utf8")
-bytes_to_str = lambda b: str(b, "utf8")
-LONG_TYPE = int
-init_BYTES = lambda b: bytes(b)
-comp_id = byte_eq_byte
-char_to_byte = lambda ch: ord(ch)
-byte_to_ord = lambda b: b
-int_to_bytes = lambda i: i.to_bytes(ceil(i.bit_length() / 8), "big")
-bytes_to_int = lambda ba: int.from_bytes(ba, "big")
-
-try:
-    int_to_bytes(2 ** 77)
-except AttributeError:
-    int_to_bytes = __int_to_bytes
-
-__b_tmp = int_to_bytes(2 ** 77)
-
-try:
-    bytes_to_int(__b_tmp)
-except AttributeError:
-    bytes_to_int = __bytes_to_int
-
-assert bytes_to_int(__b_tmp) == 2 ** 77
 
 
 class BFLoadError(Exception):
     pass
 
 
-class BFUnkownClassError(Exception):
-    def __init__(self, classname):
+class BFUnknownClassError(Exception):
+    def __init__(self, class_name):
         Exception.__init__(
             self,
             "could not load object of type '{}', no class definition found in classes\n".format(
-                classname
+                class_name
             )
             + "Please provide the lookup 'classes' when calling load, that maps the class name of the object to the actual "
             + "class definition (class object).",
@@ -123,96 +81,85 @@ class BFUnkownClassError(Exception):
 
 
 def _dump_spec(ob):
-    if ob == True:
-        b = init_BYTES([_SPEC, char_to_byte("T")])
-    elif ob == False:
-        b = init_BYTES([_SPEC, char_to_byte("F")])
-    elif ob == None:
-        b = init_BYTES([_SPEC, char_to_byte("N")])
+    """serialize special object 'ob' (True, False, None)"""
+    if ob is True:
+        b = bytes([_SPEC, ord("T")])
+    elif ob is False:
+        b = bytes([_SPEC, ord("F")])
+    elif ob is None:
+        b = bytes([_SPEC, ord("N")])
     else:
         raise RuntimeError("object is not of 'special' kind!")
     return b
 
 
 def _load_spec(b):
-    assert comp_id(b[0], _SPEC)
-    if b[1] == char_to_byte("T"):
+    """convert bytes 'b' to special object (True, False, None)"""
+    assert b[0] == _SPEC
+    if b[1] == ord("T"):
         return True, 2
-    elif b[1] == char_to_byte("F"):
+    elif b[1] == ord("F"):
         return False, 2
-    elif b[1] == char_to_byte("N"):
+    elif b[1] == ord("N"):
         return None, 2
     else:
         raise BFLoadError("internal error (unknown code for 'special' {})".format(b[1]))
 
 
-def _dump_int_32(ob):
-    b = init_BYTES([_INT_32])
-    b += struct.pack(">i", ob)
-    return b
-
-
-def _load_int_32(b):
-    assert comp_id(b[0], _INT_32)
-    i = struct.unpack(">i", b[1:5])[0]
-    return i, 5
-
-
 def _dump_int(ob):
-    if ob < 0:
-        b = init_BYTES([_INT_NEG])
-        ob *= -1
-    else:
-        b = init_BYTES([_INT])
+    """serialize an integer"""
+    ob_bytes = ob.to_bytes(ceil(ob.bit_length() / 8), "big", signed=True)
+    num_bytes = len(ob_bytes)
 
-    ib = int_to_bytes(ob)
-    num_bytes = len(ib)
+    b = bytes([_INT])
     b += struct.pack(">I", num_bytes)
-    b += ib
+    b += ob_bytes
     return b
 
 
 def _load_int(b):
-    if comp_id(b[0], _INT):
-        m = 1
-    elif comp_id(b[0], _INT_NEG):
-        m = -1
-    else:
-        raise BFLoadError("internal error (unknown int id {})".format(b[0]))
+    """converts bytes 'b' to integer"""
+    assert b[0]==_INT
     num_bytes = struct.unpack(">I", b[1:5])[0]
-    i = m * bytes_to_int(b[5 : 5 + num_bytes])
-    return i, num_bytes + 5
+    b_ = b[5: 5+num_bytes]
+    i = int.from_bytes(b_, byteorder='big', signed=True)
+    return i, 5+num_bytes
 
 
 def _dump_float(ob):
-    b = init_BYTES([_FLOAT])
+    """serialize 32bit float (double)"""
+    b = bytes([_FLOAT])
     b += struct.pack(">d", ob)
     return b
 
 
 def _load_float(b):
-    assert comp_id(b[0], _FLOAT)
+    """convert bytes 'b' to 32bit float (double)"""
+    assert b[0] == _FLOAT
     f = struct.unpack(">d", b[1:9])[0]
     return f, 9
 
 
 def _dump_complex(ob):
-    b = init_BYTES([_COMPLEX])
+    """serialize 32bit complex (2x double)"""
+    b = bytes([_COMPLEX])
     b += struct.pack(">d", ob.real)
     b += struct.pack(">d", ob.imag)
     return b
 
 
 def _load_complex(b):
-    assert comp_id(b[0], _COMPLEX)
+    """convert bytes 'b' to 32bit complex"""
+    assert b[0] == _COMPLEX
     re = struct.unpack(">d", b[1:9])[0]
     im = struct.unpack(">d", b[9:17])[0]
     return re + 1j * im, 13
 
 
 def _dump_str(ob):
-    b = init_BYTES([_STR])
-    str_bytes = str_to_bytes(ob)
+    """serialize a string"""
+    b = bytes([_STR])
+    str_bytes = bytes(ob, "utf8")
     num_bytes = len(str_bytes)
     b += struct.pack(">I", num_bytes)
     b += str_bytes
@@ -220,14 +167,16 @@ def _dump_str(ob):
 
 
 def _load_str(b):
-    assert comp_id(b[0], _STR)
+    """convert bytes 'b' to string"""
+    assert b[0] == _STR
     num_bytes = struct.unpack(">I", b[1:5])[0]
-    s = bytes_to_str(b[5 : 5 + num_bytes])
+    s = str(b[5 : 5 + num_bytes], "utf8")
     return s, 5 + num_bytes
 
 
 def _dump_bytes(ob):
-    b = init_BYTES([_BYTES])
+    """serialize a byte array"""
+    b = bytes([_BYTES])
     num_bytes = len(ob)
     b += struct.pack(">I", num_bytes)
     b += ob
@@ -235,14 +184,16 @@ def _dump_bytes(ob):
 
 
 def _load_bytes(b):
-    assert comp_id(b[0], _BYTES)
+    """convert bytes 'b' to a byte array"""
+    assert b[0] == _BYTES
     num_bytes = struct.unpack(">I", b[1:5])[0]
     b_ = b[5 : 5 + num_bytes]
     return b_, 5 + num_bytes
 
 
 def _dump_tuple(t):
-    b = init_BYTES([_TUPLE])
+    """serialize a tuple"""
+    b = bytes([_TUPLE])
     size = len(t)
     b += struct.pack(">I", size)
     for ti in t:
@@ -251,7 +202,8 @@ def _dump_tuple(t):
 
 
 def _load_tuple(b, classes):
-    assert comp_id(b[0], _TUPLE)
+    """convert bytes 'b' to tuple"""
+    assert b[0] == _TUPLE
     size = struct.unpack(">I", b[1:5])[0]
     idx = 5
     t = []
@@ -263,7 +215,8 @@ def _load_tuple(b, classes):
 
 
 def _dump_namedtuple(t):
-    b = init_BYTES([_NAMEDTUPLE])
+    """serialize a namedtuple"""
+    b = bytes([_NAMEDTUPLE])
     size = len(t)
     b += struct.pack(">I", size)
     b += _dump(t.__class__.__name__)
@@ -274,7 +227,8 @@ def _dump_namedtuple(t):
 
 
 def _load_namedtuple(b, classes):
-    assert comp_id(b[0], _NAMEDTUPLE)
+    """convert bytes 'b' to namedtuple"""
+    assert b[0] == _NAMEDTUPLE
     size = struct.unpack(">I", b[1:5])[0]
     class_name, len_ob = _load_str(b[5:])
     idx = 5 + len_ob
@@ -296,7 +250,8 @@ def _load_namedtuple(b, classes):
 
 
 def _dump_list(t):
-    b = init_BYTES([_LIST])
+    """serialize a list"""
+    b = bytes([_LIST])
     size = len(t)
     b += struct.pack(">I", size)
     for ti in t:
@@ -305,7 +260,8 @@ def _dump_list(t):
 
 
 def _load_list(b, classes):
-    assert comp_id(b[0], _LIST)
+    """convert bytes 'b' to list"""
+    assert b[0] == _LIST
     size = struct.unpack(">I", b[1:5])[0]
     idx = 5
     t = []
@@ -317,11 +273,25 @@ def _load_list(b, classes):
 
 
 def _dump_np_array(np_array):
-    b = init_BYTES([_NPARRAY])
+    """
+    Serialize a numpy array - relays on numpy's 'format.write_array()' which implements the '.npy' file format.
+    Here we use version 1.0.
 
-    nparray_bytesIO = io.BytesIO()
-    np_format.write_array(nparray_bytesIO, np_array, version=(1, 0))
-    nparray_bytes = nparray_bytesIO.getvalue()
+    In the doc it says:
+
+        The ``.npy`` format is the standard binary file format in NumPy for
+        persisting a *single* arbitrary NumPy array on disk. The format stores all
+        of the shape and dtype information necessary to reconstruct the array
+        correctly even on another machine with a different architecture.
+        The format is designed to be as simple as possible while achieving
+        its limited goals.
+
+    so it should be suited for our porpuse.
+    """
+    b = bytes([_NPARRAY])
+    nparray_bytes_io = io.BytesIO()
+    np_format.write_array(nparray_bytes_io, np_array, version=(1, 0))
+    nparray_bytes = nparray_bytes_io.getvalue()
     size = len(nparray_bytes)
     b += struct.pack(">I", size)
     b += nparray_bytes
@@ -329,7 +299,8 @@ def _dump_np_array(np_array):
 
 
 def _load_np_array(b):
-    assert comp_id(b[0], _NPARRAY)
+    """convert bytes 'b' to numpy array"""
+    assert b[0] == _NPARRAY
     size = struct.unpack(">I", b[1:5])[0]
     nparray_bytesIO = io.BytesIO(b[5 : size + 5])
     npa = np_format.read_array(nparray_bytesIO)
@@ -337,7 +308,7 @@ def _load_np_array(b):
 
 
 def _dump_bfkey(ob):
-    b = init_BYTES([_BFKEY])
+    b = bytes([_BFKEY])
     bfkey = ob.__bfkey__()
     obj_type = ob.__class__.__name__
     b += _dump(str(obj_type))
@@ -353,7 +324,7 @@ def _load_bfkey(b, classes):
 
 
 def _dump_getstate(ob):
-    b = init_BYTES([_GETSTATE])
+    b = bytes([_GETSTATE])
     state = ob.__getstate__()
     obj_type = ob.__class__.__name__
     b += _dump(str(obj_type))
@@ -369,14 +340,14 @@ def _load_getstate(b, classes):
     try:
         cls = classes[obj_type]
     except KeyError:
-        raise BFUnkownClassError(obj_type)
+        raise BFUnknownClassError(obj_type)
     obj = cls.__new__(cls)
     obj.__setstate__(state)
     return obj, l_obj_type + l_state + 1
 
 
 def _dump_dict(ob):
-    b = init_BYTES([_DICT])
+    b = bytes([_DICT])
     keys = ob.keys()
     bin_keys = []
     for k in keys:
@@ -402,7 +373,7 @@ def _load_dict(b, classes):
 
 
 def _dump_scipy_csc_matrix(ob):
-    b = init_BYTES([_SP_CSC_MAT])
+    b = bytes([_SP_CSC_MAT])
 
     b += _dump_np_array(ob.data)
     b += _dump_np_array(ob.indices)
@@ -507,7 +478,7 @@ def dump(ob):
     """
         returns the binary footprint of the object 'ob' as bytes
     """
-    return init_BYTES([_VERS]) + _dump(ob)
+    return bytes([_VERS]) + _dump(ob)
 
 
 def load(b, classes={}):
