@@ -1,2 +1,2 @@
-from .binfootprint import dump, load, getVersion
-from .util import ShelveCacheDec, ABS_Parameter
+from .binfootprint import dump, load, get_version
+from .util import *

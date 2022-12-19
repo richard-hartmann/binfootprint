@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "binfootprint"
-version = "0.2.5"
-description = "serielize python objetcs in a deterministic way"
+version = "0.3.0"
+description = "unique serialization of python objetcs"
 authors = ["Richard Hartmann"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/richard-hartmann/binfootprint"
 repository = "https://github.com/richard-hartmann/binfootprint"
-keywords = ["serialization", "binary key"]
+keywords = ["serialization", "binary key", "cache", "function cache", "scientific computing"]
 classifiers = [
     "Environment :: Console",
     "Operating System :: OS Independent",
@@ -19,7 +19,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.11"
+python = ">=3.6,<3.11"
 numpy = "^1.22.0"
 scipy = "^1.7.3"
 pytest = "^7.0.0"

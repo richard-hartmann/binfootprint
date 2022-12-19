@@ -1,22 +1,14 @@
-"""
-    Implements the main functionality to dump (and also load) a selection of python objects.
-"""
-
 # python imports
 from collections import namedtuple
 import io
 from math import ceil
 import struct
+import sys
 
 # third party imports
 import numpy as np
 from numpy.lib import format as np_format
 
-try:
-    import scipy
-    from scipy.sparse import isspmatrix_csc
-except ImportError:
-    scipy = None
 
 ##########################################
 #   define constants
@@ -24,25 +16,25 @@ except ImportError:
 
 _spec_types = (bool, type(None))
 
-_SPEC = 0x00        # True, False, None
+_SPEC = 0x00  # True, False, None
 _INT = 0x01
 _FLOAT = 0x02
 _COMPLEX = 0x03
 _STR = 0x04
-_BYTES = 0x05       # only for python3, as bytes and str are equivalent in python2
+_BYTES = 0x05  # only for python3, as bytes and str are equivalent in python2
 # _INT = 0x06
 _TUPLE = 0x07
 _NAMEDTUPLE = 0x08
 _NPARRAY = 0x09
 _LIST = 0x0A
-_GETSTATE = 0x0B    # only used when __bfkey__ is not present
+_GETSTATE = 0x0B  # only used when __bfkey__ is not present
 _DICT = 0x0C
 # _INT_NEG = 0x0D
-_BFKEY = 0x0E       # a special BF-Key member __bfkey__ is used if implemented, uses __getstate__ as fallback
-_SP_CSC_MAT = 0x0F  # scipy csc sparse matrix
+_BFKEY = 0x0E  # a special BF-Key member __bfkey__ is used if implemented, uses __getstate__ as fallback
+# _SP_CSC_MAT = 0x0F  # scipy csc sparse matrix
 
-#_VERS = 0x90        # use pickle to binfootprint numpy arrays / this breaks backwards compatibility
-_VERS = 0x91        # unify ints / this breaks backwards compatibility
+# _VERS = 0x90        # use pickle to binfootprint numpy arrays / this breaks backwards compatibility
+_VERS = 0x91  # unify ints / this breaks backwards compatibility
 
 __max_int32 = +2147483647
 __min_int32 = -2147483648
@@ -53,31 +45,8 @@ def get_version():
     return _VERS
 
 
-def char_eq_byte(ch, b):
-    """True if the ASCII value of 'ch' corresponds to 'b'"""
-    return ord(ch) == b
-
-
-def byte_eq_byte(b1, b2):
-    """True if the two bytes 'b1' and 'b2' are equal"""
-    return b1 == b2
-
-
-
 class BFLoadError(Exception):
     pass
-
-
-class BFUnknownClassError(Exception):
-    def __init__(self, class_name):
-        Exception.__init__(
-            self,
-            "could not load object of type '{}', no class definition found in classes\n".format(
-                class_name
-            )
-            + "Please provide the lookup 'classes' when calling load, that maps the class name of the object to the actual "
-            + "class definition (class object).",
-        )
 
 
 def _dump_spec(ob):
@@ -108,7 +77,7 @@ def _load_spec(b):
 
 def _dump_int(ob):
     """serialize an integer"""
-    ob_bytes = ob.to_bytes(ceil(ob.bit_length() / 8), "big", signed=True)
+    ob_bytes = ob.to_bytes(ceil((ob.bit_length() + 1) / 8), "big", signed=True)
     num_bytes = len(ob_bytes)
 
     b = bytes([_INT])
@@ -119,11 +88,11 @@ def _dump_int(ob):
 
 def _load_int(b):
     """converts bytes 'b' to integer"""
-    assert b[0]==_INT
+    assert b[0] == _INT
     num_bytes = struct.unpack(">I", b[1:5])[0]
-    b_ = b[5: 5+num_bytes]
-    i = int.from_bytes(b_, byteorder='big', signed=True)
-    return i, 5+num_bytes
+    b_ = b[5 : 5 + num_bytes]
+    i = int.from_bytes(b_, byteorder="big", signed=True)
+    return i, 5 + num_bytes
 
 
 def _dump_float(ob):
@@ -201,14 +170,14 @@ def _dump_tuple(t):
     return b
 
 
-def _load_tuple(b, classes):
+def _load_tuple(b):
     """convert bytes 'b' to tuple"""
     assert b[0] == _TUPLE
     size = struct.unpack(">I", b[1:5])[0]
     idx = 5
     t = []
     for i in range(size):
-        ob, len_ob = _load(b[idx:], classes)
+        ob, len_ob = _load(b[idx:])
         t.append(ob)
         idx += len_ob
     return tuple(t), idx
@@ -226,7 +195,7 @@ def _dump_namedtuple(t):
     return b
 
 
-def _load_namedtuple(b, classes):
+def _load_namedtuple(b):
     """convert bytes 'b' to namedtuple"""
     assert b[0] == _NAMEDTUPLE
     size = struct.unpack(">I", b[1:5])[0]
@@ -235,11 +204,11 @@ def _load_namedtuple(b, classes):
     t = []
     fields = []
     for i in range(size):
-        ob, len_ob = _load(b[idx:], classes)
+        ob, len_ob = _load(b[idx:])
         fields.append(ob)
         idx += len_ob
 
-        ob, len_ob = _load(b[idx:], classes)
+        ob, len_ob = _load(b[idx:])
         t.append(ob)
         idx += len_ob
 
@@ -259,14 +228,14 @@ def _dump_list(t):
     return b
 
 
-def _load_list(b, classes):
+def _load_list(b):
     """convert bytes 'b' to list"""
     assert b[0] == _LIST
     size = struct.unpack(">I", b[1:5])[0]
     idx = 5
     t = []
     for i in range(size):
-        ob, len_ob = _load(b[idx:], classes)
+        ob, len_ob = _load(b[idx:])
         t.append(ob)
         idx += len_ob
     return t, idx
@@ -286,7 +255,7 @@ def _dump_np_array(np_array):
         The format is designed to be as simple as possible while achieving
         its limited goals.
 
-    so it should be suited for our porpuse.
+    so it should be suited for our purpose.
     """
     b = bytes([_NPARRAY])
     nparray_bytes_io = io.BytesIO()
@@ -307,46 +276,82 @@ def _load_np_array(b):
     return npa, size + 5
 
 
-def _dump_bfkey(ob):
+def _dump_bf_key(ob):
+    """
+    serialize an object based on the '__bfkey__' member
+
+    This is similar to the __getstate__ member used to pickle python objects.
+    So in order to work, the returned object of __bfkey__() needs to be compatible
+    with the binaryfootprint serialization.
+    To uniquely identify objects, their class name and the name of the module which defines
+    the class is serialized as well.
+
+    New in version 0.3: add name of the module to serialization
+    """
     b = bytes([_BFKEY])
-    bfkey = ob.__bfkey__()
-    obj_type = ob.__class__.__name__
-    b += _dump(str(obj_type))
-    b += _dump(bfkey)
+    bf_key = ob.__bfkey__()
+    cls_name = ob.__class__.__name__
+    cls_module = ob.__class__.__module__
+    b += _dump(str(cls_name))
+    b += _dump(str(cls_module))
+    b += _dump(bf_key)
     return b
 
 
-def _load_bfkey(b, classes):
-    assert comp_id(b[0], _BFKEY)
-    obj_type, l_obj_type = _load_str(b[1:])
-    bfkey, l_state = _load(b[l_obj_type + 1 :], classes)
-    return (obj_type, bfkey), l_obj_type + l_state + 1
+def _load_bf_key(b):
+    """convert bytes 'b' to (class_name, class_module, bf_key)"""
+    assert b[0] == _BFKEY
+    cls_name, l_cls_name = _load_str(b[1:])
+    cls_module, l_cls_module = _load_str(b[l_cls_name + 1 :])
+    bf_key, l_state = _load(b[l_cls_name + l_cls_module + 1 :])
+    return (cls_name, cls_module, bf_key), l_cls_name + l_cls_module + l_state + 1
 
 
 def _dump_getstate(ob):
+    """
+    serialize an object based on the '__getstate__' member used by pickle
+
+    To uniquely identify objects, their class name and the name of the module which defines
+    the class is serialized as well.
+
+    New in version 0.3: add name of the module to serialization
+    """
     b = bytes([_GETSTATE])
     state = ob.__getstate__()
-    obj_type = ob.__class__.__name__
-    b += _dump(str(obj_type))
+    cls_name = ob.__class__.__name__
+    cls_module = ob.__class__.__module__
+    b += _dump(str(cls_name))
+    b += _dump(str(cls_module))
     b += _dump(state)
-
     return b
 
 
-def _load_getstate(b, classes):
-    assert comp_id(b[0], _GETSTATE)
-    obj_type, l_obj_type = _load_str(b[1:])
-    state, l_state = _load(b[l_obj_type + 1 :], classes)
-    try:
-        cls = classes[obj_type]
-    except KeyError:
-        raise BFUnknownClassError(obj_type)
+def _load_getstate(b):
+    """
+    convert bytes 'b' to an object
+
+    Use __new__ constructor and __setstate__ to initialize the class, which is then returned.
+    Note that the module which defined the class needs to be loaded in order to
+    construct the object from binary data (similar to pickle.load()).
+    """
+    assert b[0] == _GETSTATE
+    cls_name, l_cls_name = _load_str(b[1:])
+    cls_module, l_cls_module = _load_str(b[l_cls_name + 1 :])
+    state, l_state = _load(b[l_cls_name + l_cls_module + 1 :])
+    m = sys.modules[cls_module]
+    cls = getattr(m, cls_name)
     obj = cls.__new__(cls)
     obj.__setstate__(state)
-    return obj, l_obj_type + l_state + 1
+    return obj, l_cls_name + l_cls_module + l_state + 1
 
 
 def _dump_dict(ob):
+    """
+    serialize a dictionary
+
+    Sorting the tuple containing the binary key and the binary value yields a unique
+    representation for the whole dictionary.
+    """
     b = bytes([_DICT])
     keys = ob.keys()
     bin_keys = []
@@ -360,51 +365,24 @@ def _dump_dict(ob):
     return b
 
 
-def _load_dict(b, classes):
-    assert comp_id(b[0], _DICT)
-    sorted_keys_value, l = _load_list(b[1:], classes)
+def _load_dict(b):
+    """convert bytes 'b' to dictionary"""
+    assert b[0] == _DICT
+    sorted_keys_value, l = _load_list(b[1:])
     res_dict = {}
     for i in range(len(sorted_keys_value)):
-        key = _load(sorted_keys_value[i][0], classes)[0]
-        value = _load(sorted_keys_value[i][1], classes)[0]
+        key = _load(sorted_keys_value[i][0])[0]
+        value = _load(sorted_keys_value[i][1])[0]
         res_dict[key] = value
 
     return res_dict, l + 1
 
 
-def _dump_scipy_csc_matrix(ob):
-    b = bytes([_SP_CSC_MAT])
-
-    b += _dump_np_array(ob.data)
-    b += _dump_np_array(ob.indices)
-    b += _dump_np_array(ob.indptr)
-    b += _dump_tuple(ob.shape)
-
-    return b
-
-
-def _load_scipy_csc_matrix(b):
-    assert comp_id(b[0], _SP_CSC_MAT)
-    l = 0
-    data, _l = _load_np_array(b[1:])
-    l += _l
-    indices, _l = _load_np_array(b[1 + l :])
-    l += _l
-    indptr, _l = _load_np_array(b[1 + l :])
-    l += _l
-    shape, _l = _load_tuple(b[1 + l :], classes={})
-    l += _l
-    return scipy.csc_matrix((data, indices, indptr), shape=shape), l + 1
-
-
 def _dump(ob):
     if isinstance(ob, _spec_types):
         return _dump_spec(ob)
-    elif isinstance(ob, (int, LONG_TYPE)):
-        if (__min_int32 <= ob) and (ob <= __max_int32):
-            return _dump_int_32(ob)
-        else:
-            return _dump_int(ob)
+    elif isinstance(ob, int):
+        return _dump_int(ob)
     elif isinstance(ob, float):
         return _dump_float(ob)
     elif isinstance(ob, complex):
@@ -425,24 +403,20 @@ def _dump(ob):
     elif isinstance(ob, dict):
         return _dump_dict(ob)
     elif hasattr(ob, "__bfkey__"):
-        return _dump_bfkey(ob)
+        return _dump_bf_key(ob)
     elif hasattr(ob, "__getstate__"):
         return _dump_getstate(ob)
-    elif scipy and isspmatrix_csc(ob):
-        return _dump_scipy_csc_matrix(ob)
     else:
         raise TypeError("unsupported type for dump '{}' ({})".format(type(ob), ob))
 
 
-def _load(b, classes):
+def _load(b):
     identifier = b[0]
     if isinstance(identifier, str):
         identifier = ord(identifier)
     if identifier == _SPEC:
         return _load_spec(b)
-    elif identifier == _INT_32:
-        return _load_int_32(b)
-    elif (identifier == _INT) or (identifier == _INT_NEG):
+    elif identifier == _INT:
         return _load_int(b)
     elif identifier == _FLOAT:
         return _load_float(b)
@@ -453,21 +427,19 @@ def _load(b, classes):
     elif identifier == _BYTES:
         return _load_bytes(b)
     elif identifier == _TUPLE:
-        return _load_tuple(b, classes)
+        return _load_tuple(b)
     elif identifier == _NAMEDTUPLE:
-        return _load_namedtuple(b, classes)
+        return _load_namedtuple(b)
     elif identifier == _LIST:
-        return _load_list(b, classes)
+        return _load_list(b)
     elif identifier == _NPARRAY:
         return _load_np_array(b)
     elif identifier == _DICT:
-        return _load_dict(b, classes)
+        return _load_dict(b)
     elif identifier == _BFKEY:
-        return _load_bfkey(b, classes)
+        return _load_bf_key(b)
     elif identifier == _GETSTATE:
-        return _load_getstate(b, classes)
-    elif identifier == _SP_CSC_MAT:
-        return _load_scipy_csc_matrix(b)
+        return _load_getstate(b)
     else:
         raise BFLoadError(
             "internal error (unknown identifier '{}')".format(hex(identifier))
@@ -481,12 +453,12 @@ def dump(ob):
     return bytes([_VERS]) + _dump(ob)
 
 
-def load(b, classes={}):
+def load(b):
     """
         reconstruct the object from the binary footprint given as bytes 'b'
     """
     vers = b[0]
-    if byte_to_ord(vers) != _VERS:
+    if vers != _VERS:
         raise BFLoadError("wrong version (converter needed!)")
 
-    return _load(b[1:], classes)[0]
+    return _load(b[1:])[0]

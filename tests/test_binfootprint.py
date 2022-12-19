@@ -1,6 +1,5 @@
 # python imports
 from collections import namedtuple
-import warnings
 
 # third party imports
 import numpy as np
@@ -10,12 +9,18 @@ from binfootprint import binfootprint as bfp
 
 
 def test_version_tag():
+    """
+    test consistency in version
+    """
     ob = 5
-    binob = bfp.dump(ob)
-    assert bfp.byte_to_ord(binob[0]) == bfp.getVersion()
+    b = bfp.dump(ob)
+    assert b[0] == bfp.get_version()
 
 
 def test_atom():
+    """
+    test list of atomic types
+    """
     atoms = [
         12345678,
         3.141,
@@ -50,7 +55,7 @@ def test_tuple():
         (3, tuple(), (4, 5, None), "test"),
     )
     bin_tuple = bfp.dump(t)
-    assert type(bin_tuple) is bfp.BIN_TYPE
+    assert type(bin_tuple) is bytes
     t_prime = bfp.load(bin_tuple)
     assert t == t_prime
     bin_ob_prime = bfp.dump(t_prime)
@@ -59,9 +64,8 @@ def test_tuple():
 
 def test_nparray():
     ob = np.random.randn(3, 53, 2)
-
     bin_ob = bfp.dump(ob)
-    assert type(bin_ob) is bfp.BIN_TYPE
+    assert type(bin_ob) is bytes
     ob_prime = bfp.load(bin_ob)
     assert np.all(ob == ob_prime)
     bin_ob_prime = bfp.dump(ob_prime)
@@ -80,7 +84,7 @@ def test_nparray():
 def test_list():
     ob = [1, 2, 3]
     bin_ob = bfp.dump(ob)
-    assert type(bin_ob) is bfp.BIN_TYPE
+    assert type(bin_ob) is bytes
     ob_prime = bfp.load(bin_ob)
     assert np.all(ob == ob_prime)
     bin_ob_prime = bfp.dump(ob_prime)
@@ -97,38 +101,28 @@ def test_list():
     assert np.all(ob[2] == ob_prime[2])
 
 
+class T(object):
+    def __init__(self, a):
+        self.a = a
+
+    def __getstate__(self):
+        return [self.a]
+
+    def __setstate__(self, state):
+        self.a = state[0]
+
+
 def test_getstate():
-    class T(object):
-        def __init__(self, a):
-            self.a = a
-
-        def __getstate__(self):
-            return [self.a]
-
-        def __setstate__(self, state):
-            self.a = state[0]
 
     ob = T(4)
     bin_ob = bfp.dump(ob)
-    assert type(bin_ob) is bfp.BIN_TYPE
+    assert type(bin_ob) is bytes
 
-    classes = {}
-    classes["T"] = T
-
-    ob_prime = bfp.load(bin_ob, classes)
+    ob_prime = bfp.load(bin_ob)
 
     assert np.all(ob.a == ob_prime.a)
     bin_ob_prime = bfp.dump(ob_prime)
     assert bin_ob == bin_ob_prime
-
-    try:
-        bfp.load(bin_ob)
-    except bfp.BFUnkownClassError:
-        pass
-    else:
-        assert False, "binfootprint.BFUnkownClassError should have been raised"
-
-
 
 
 def test_named_tuple():
@@ -137,7 +131,7 @@ def test_named_tuple():
     obj = obj_type(12345678, 3.141, "hallo Welt")
 
     bin_obj = bfp.dump(obj)
-    assert type(bin_obj) is bfp.BIN_TYPE
+    assert type(bin_obj) is bytes
     obj_prime = bfp.load(bin_obj)
     assert obj_prime.__class__.__name__ == obj.__class__.__name__
     assert obj_prime._fields == obj._fields
@@ -149,7 +143,7 @@ def test_named_tuple():
 def test_complex():
     z = 3 + 4j
     bf = bfp.dump(z)
-    assert type(bf) is bfp.BIN_TYPE
+    assert type(bf) is bytes
     zr = bfp.load(bf)
     assert zr == z
 
@@ -157,30 +151,17 @@ def test_complex():
 def test_dict():
     a = {"a": 1, 5: 5, 3 + 4j: "l", False: b"ab4+#"}
     bf = bfp.dump(a)
-    assert type(bf) is bfp.BIN_TYPE
+    assert type(bf) is bytes
     a_restored = bfp.load(bf)
     for k in a:
         assert a[k] == a_restored[k]
 
 
-
-def test_unsopportedtype():
+def test_unsupported_type():
     obj = bytearray([4, 5, 6])
     try:
         bfp.dump(obj)
     except TypeError:
         pass
-
-
-if __name__ == "__main__":
-    # test_version_tag()
-    # test_atom()
-    # test_tuple()
-    test_nparray()
-    test_list()
-    # test_getstate()
-    # test_named_tuple()
-    # test_complex()
-    # test_dict()
-    # test_versions()
-    # test_unsopportedtype()
+    else:
+        assert False, "TypeError should have been raised!"
