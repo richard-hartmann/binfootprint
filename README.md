@@ -317,12 +317,12 @@ on different functions, since the name of the function and the name of the
 module defining the function determined the name of the underlying database.  
 
 In addition to caching the decorator extends the function signature by the 
-kwarg `shelve_cache_flag` which modifies the caching behavior as follows:
+kwarg `_cache_flag` which modifies the caching behavior as follows:
 
-- `shelve_cache_flag = 'no_cache'`: Simple call of `fnc` with no caching.
-- `shelve_cache_flag = 'update'`: Call `fnc` and update the cache with recent return value.
-- `shelve_cache_flag = 'has_key'`: Return `True` if the call has already been cached, otherwise `False`.
-- `shelve_cache_flag = 'cache_only'`: Raises a `KeyError` if the result has not been cached yet.
+- `_cache_flag = 'no_cache'`: Simple call of `fnc` with no caching.
+- `_cache_flag = 'update'`: Call `fnc` and update the cache with recent return value.
+- `_cache_flag = 'has_key'`: Return `True` if the call has already been cached, otherwise `False`.
+- `_cache_flag = 'cache_only'`: Raises a `KeyError` if the result has not been cached yet.
 
 ```python
 p = Point(10, 10)
@@ -337,7 +337,7 @@ print(area(p))
 p = Point(10, 11)
 
 print("f(p(10, 11)) is in cache?")
-print(area(p, shelve_cache_flag='has_key'))
+print(area(p, _cache_flag='has_key'))
 # False
 ```
 

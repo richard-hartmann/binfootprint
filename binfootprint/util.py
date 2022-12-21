@@ -116,13 +116,13 @@ class ShelveCacheDec:
 class ShelveCache:
     def __init__(self, fnc, path):
         """
-        Extend the function `fnc` by caching and adds the extra kwarg  `shelve_cache_flag` which
+        Extend the function `fnc` by caching and adds the extra kwarg  `_cache_flag` which
         modifies the caching behavior as follows:
 
-            `shelve_cache_flag = 'no_cache'`: Simple call of `fnc` with no caching.
-            `shelve_cache_flag = 'update'`: Call `fnc` and update the cache with recent return value.
-            `shelve_cache_flag = 'has_key'`: Return `True` if the call has already been cached, otherwise `False`.
-            `shelve_cache_flag = 'cache_only'`: Raises a `KeyError` if the result has not been cached yet.
+            `_cache_flag = 'no_cache'`: Simple call of `fnc` with no caching.
+            `_cache_flag = 'update'`: Call `fnc` and update the cache with recent return value.
+            `_cache_flag = 'has_key'`: Return `True` if the call has already been cached, otherwise `False`.
+            `_cache_flag = 'cache_only'`: Raises a `KeyError` if the result has not been cached yet.
 
         :param fnc: function to be cached
         :param path: location where the cache data is stored
@@ -149,9 +149,9 @@ class ShelveCache:
         the actual wrapper function that implements the caching for `fnc`
         """
         flag = None
-        if "shelve_cache_flag" in kwargs:
-            flag = kwargs["shelve_cache_flag"]
-            del kwargs["shelve_cache_flag"]
+        if "_cache_flag" in kwargs:
+            flag = kwargs["_cache_flag"]
+            del kwargs["_cache_flag"]
 
         if flag == "no_cache":
             return self.fnc(*args, **kwargs)

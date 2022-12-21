@@ -42,4 +42,4 @@ print(area(p))
 
 p = Point(10, 11)
 print("f(p(10, 11)) is in cache?")
-print(area(p, shelve_cache_flag="has_key"))
+print(area(p, _cache_flag="has_key"))
