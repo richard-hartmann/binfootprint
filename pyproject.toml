@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "binfootprint"
-version = "0.4.1"
+version = "0.4.2"
 description = "unique serialization of python objetcs"
 authors = ["Richard Hartmann"]
 license = "MIT"
