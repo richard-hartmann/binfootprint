@@ -1,5 +1,7 @@
 # binfootprint - unique serialization of python objects
 
+[![PyPI version](https://badge.fury.io/py/binfootprint.svg)](https://badge.fury.io/py/binfootprint)
+
 ## Why unique serialization
 
 When caching computationally expansive function calls, the input arguments (*args, **kwargs)
