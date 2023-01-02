@@ -1,4 +1,5 @@
 # python imports
+import pathlib
 from hashlib import sha256
 from inspect import signature
 from pathlib import Path
@@ -95,7 +96,7 @@ class ShelveCacheDec:
     The SHA256 hash value of the binary data is used as key for the shelf.
     """
 
-    def __init__(self, path=".cache"):
+    def __init__(self, path=".cache", include_module_name=True):
         """
         Initialize the ShelveCacheDec class which caches function calls using python's shelve.
 
@@ -104,17 +105,18 @@ class ShelveCacheDec:
         name of the function and the name of the module defining that function.
         It is, thus, safe to use the ShelveCacheDec with the same path parameter on different functions.
 
-        :param path: the path under which the database (shelve) is stored.
+        :param path: the path under which the database (shelve) is stored
+        :param include_module_name: if True (default) the database is named `module.fnc_name`, otherwise `fnc_name`
         """
-        self.path = Path(path).absolute()
-        self.path.mkdir(parents=True, exist_ok=True)
+        self.path = path
+        self.include_module_name = include_module_name
 
     def __call__(self, fnc):
-        return ShelveCache(fnc, self.path)
+        return ShelveCache(fnc, self.path, self.include_module_name)
 
 
 class ShelveCache:
-    def __init__(self, fnc, path):
+    def __init__(self, fnc, path, include_module_name=True):
         """
         Extend the function `fnc` by caching and adds the extra kwarg  `_cache_flag` which
         modifies the caching behavior as follows:
@@ -124,13 +126,26 @@ class ShelveCache:
             `_cache_flag = 'has_key'`: Return `True` if the call has already been cached, otherwise `False`.
             `_cache_flag = 'cache_only'`: Raises a `KeyError` if the result has not been cached yet.
 
+        The cache data is stored under `path` in a database with name `module.fnc_name` where
+        `module` is the name of the module defining the function `fnc` and `fnc_name` is the
+        name of the function `fnc`.
+        If `include_module_name` is set to False the name of the database is `fnc_name` only.
+        This can be useful during developing stage. However, it obviously requires that function names
+        need to be distinctive.
+
         :param fnc: function to be cached
         :param path: location where the cache data is stored
+        :param include_module_name: if True (default) the database is named `module.fnc_name`, otherwise `fnc_name`
         """
-        self.path = path
+        self.path = pathlib.Path(path)
         self.fnc = fnc
         self.fnc_sig = signature(fnc)
-        self.f_name = str(self.path / (self.fnc.__module__ + "." + self.fnc.__name__))
+        if include_module_name:
+            self.f_name = str(
+                self.path / (self.fnc.__module__ + "." + self.fnc.__name__)
+            )
+        else:
+            self.f_name = str(self.path / self.fnc.__name__)
 
     def param_hash(self, *args, **kwargs):
         """

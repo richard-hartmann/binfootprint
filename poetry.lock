@@ -24,7 +24,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7
 
 [[package]]
 name = "exceptiongroup"
-version = "1.0.4"
+version = "1.1.0"
 description = "Backport of PEP 654 (exception groups)"
 category = "main"
 optional = false
@@ -43,7 +43,7 @@ python-versions = "*"
 
 [[package]]
 name = "numpy"
-version = "1.24.0"
+version = "1.24.1"
 description = "Fundamental package for array computing in Python"
 category = "main"
 optional = false
@@ -100,7 +100,7 @@ python-versions = ">=3.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "e8078e8078e082570ed97f8a6081e56e8e600293115ed14dcac28ce3e1dc7bcd"
+content-hash = "a0307ca784f7aa090211cc6fe1b8308976ffcd5291b5f407f9b140aac7c7316a"
 
 [metadata.files]
 attrs = []
