@@ -159,25 +159,20 @@ class ShelveCache:
         fnc_args_key = hash_hex_from_object(fnc_args)
         return fnc_args_key
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, _cache_flag=None, **kwargs):
         """
         the actual wrapper function that implements the caching for `fnc`
         """
-        flag = None
-        if "_cache_flag" in kwargs:
-            flag = kwargs["_cache_flag"]
-            del kwargs["_cache_flag"]
-
-        if flag == "no_cache":
+        if _cache_flag == "no_cache":
             return self.fnc(*args, **kwargs)
         else:
             fnc_args_key = self.param_hash(*args, **kwargs)
             with shelve.open(self.f_name) as db:
-                if flag == "has_key":
+                if _cache_flag == "has_key":
                     return fnc_args_key in db
-                elif flag == "cache_only":
+                elif _cache_flag == "cache_only":
                     return db[fnc_args_key]
-                elif (fnc_args_key not in db) or (flag == "update"):
+                elif (fnc_args_key not in db) or (_cache_flag == "update"):
                     r = self.fnc(*args, **kwargs)
                     db[fnc_args_key] = r
                     return r
