@@ -60,6 +60,29 @@ b = binfootprint.dump(ob)
 ```
 If `__bfkey__` is implemented, it is used over `__getstate__`.
 
+*New since version 1.2.0:* 
+[`functools.partial`](https://docs.python.org/3/library/functools.html?highlight=partial#functools.partial) 
+objects can now be serialized too. This allows to cache a function which takes a `functools.partial`
+as argument.
+
+```python
+def gaussian(x, a, sigma, x0):
+    return a * math.exp(-(x-x0)**2 / 2 / sigma**2)
+
+@binfootprint.util.ShelveCacheDec()
+def quad(f, x_min, x_max, dx):
+    r = 0
+    x = x_min
+    while x < x_max:
+        r += f(x)
+        x += dx
+    return dx*r
+
+g = functools.partial(gaussian, a=1, sigma=1, x0=-2.34)
+quad(g, x_min=-10, x_max=10, dx=0.001)
+
+```
+
 ### cache decorator 
 
 Utilizing the unique binary representation of python objects, a persistent 
@@ -112,15 +135,14 @@ as well as their **nested combination** by means of the **native data structures
 - dictionary
 - namedtuple.
 
-In addition, also
-- numpy `ndarray`
+In addition, the following types are supported:
+- numpy `ndarray`: 
+  The serialization makes use of numpy's 
+  [format.write_array()](https://numpy.org/devdocs/reference/generated/numpy.lib.format.write_array.html) 
+  function using version 1.0.
+- `functools.partial` objects (*new since version 1.2.0*)
 
-is supported. 
-The serialization makes use of numpy's 
-[format.write_array()](https://numpy.org/devdocs/reference/generated/numpy.lib.format.write_array.html) 
-function using version 1.0.
-
-Furthermore, any class that implements 
+ Furthermore, any class that implements 
 
 - `__getstate__` (python's pickle interface)
 

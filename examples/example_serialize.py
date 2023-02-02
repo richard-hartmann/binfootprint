@@ -15,8 +15,8 @@ atoms = [
     True,  #
     False,  #
     None,  # special Values
-    2 ** 65,  # large int
-    -(3 ** 65),  # large negative int
+    2**65,  # large int
+    -(3**65),  # large negative int
     b"\xff\fe\03",  # byte sequence
 ]  # bytes
 

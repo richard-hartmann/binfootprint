@@ -1,11 +1,14 @@
 # python imports
 from collections import namedtuple
+from functools import partial
 
 # third party imports
 import numpy as np
 
 # package imports
+import binfootprint
 from binfootprint import binfootprint as bfp
+from tests import some_module
 
 
 def test_version_tag():
@@ -29,8 +32,8 @@ def test_atom():
         True,
         False,
         None,
-        2 ** 65,
-        -(3 ** 65),
+        2**65,
+        -(3**65),
         b"\xff\fe\03",
         bytes(range(256)),
     ]
@@ -165,3 +168,62 @@ def test_unsupported_type():
         pass
     else:
         assert False, "TypeError should have been raised!"
+
+
+def generic_function(a, b, c):
+    return a * b * c, "generic_function"
+
+
+class CallableClass:
+    var = None
+
+    def __init__(self, a, b, c):
+        self.a = a
+        self.b = b
+        self.c = c
+        super().__init__()
+
+    def __call__(self, a, b, c):
+        return a * b * c, "CallableClass.__call__"
+
+    def bound_function(self, a, b, c):
+        return a * b * c, "CallableClass.bounded_function"
+
+    @staticmethod
+    def static_class_member(a, b, c):
+        return a * b * c, "CallableClass.static_class_member"
+
+
+def test_functools_partial():
+    # what can we make partial
+    cc = CallableClass(a=1, b=2, c=3)
+    f_list = [
+        (partial(generic_function, 2, c=3), True),
+        (partial(CallableClass, 2, c=3), False),
+        (partial(cc, 2, c=3), False),
+        (partial(CallableClass.static_class_member, 2, c=3), True),
+        (partial(cc.bound_function, 2, c=3), False),
+        (partial(some_module.generic_function_in_some_module, 2, c=3), True),
+    ]
+    for partial_of_f, can_be_bf_dumped in f_list:
+        # see if this yields a valid call for the partial
+        partial_of_f(4)
+        try:
+            bin_data = binfootprint.dump(partial_of_f)
+        except TypeError:
+            bf_dump_success = False
+        else:
+            bf_dump_success = True
+
+        assert bf_dump_success == can_be_bf_dumped
+        if bf_dump_success:
+            rec_data = binfootprint.load(bin_data)
+            assert rec_data[0] == partial_of_f.func.__module__
+            assert rec_data[1] == partial_of_f.func.__qualname__
+            kwargs = rec_data[2]
+            assert kwargs["a"] == 2
+            assert kwargs["c"] == 3
+
+
+if __name__ == "__main__":
+    test_functools_partial()

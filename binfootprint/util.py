@@ -141,11 +141,11 @@ class ShelveCache:
         self.fnc = fnc
         self.fnc_sig = signature(fnc)
         if include_module_name:
-            self.f_name = str(
-                self.path / (self.fnc.__module__ + "." + self.fnc.__name__)
-            )
+            self.f_name = self.path / (self.fnc.__module__ + "." + self.fnc.__name__)
+
         else:
-            self.f_name = str(self.path / self.fnc.__name__)
+            self.f_name = self.path / self.fnc.__name__
+        self.f_name.mkdir(parents=True, exist_ok=True)
 
     def param_hash(self, *args, **kwargs):
         """
@@ -167,7 +167,7 @@ class ShelveCache:
             return self.fnc(*args, **kwargs)
         else:
             fnc_args_key = self.param_hash(*args, **kwargs)
-            with shelve.open(self.f_name) as db:
+            with shelve.open(str(self.f_name)) as db:
                 if _cache_flag == "has_key":
                     return fnc_args_key in db
                 elif _cache_flag == "cache_only":

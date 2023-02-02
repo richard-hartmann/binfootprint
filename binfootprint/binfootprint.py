@@ -1,9 +1,12 @@
 # python imports
+import functools
+import inspect
 from collections import namedtuple
 import io
 from math import ceil
 import struct
 import sys
+from types import FunctionType
 
 # third party imports
 import numpy as np
@@ -32,6 +35,7 @@ _DICT = 0x0C
 # _INT_NEG = 0x0D
 _BFKEY = 0x0E  # a special BF-Key member __bfkey__ is used if implemented, uses __getstate__ as fallback
 # _SP_CSC_MAT = 0x0F  # scipy csc sparse matrix
+_PARTIAL = 0x0F  # functools.partial
 
 # _VERS = 0x90        # use pickle to binfootprint numpy arrays / this breaks backwards compatibility
 _VERS = 0x91  # unify ints / this breaks backwards compatibility
@@ -378,6 +382,39 @@ def _load_dict(b):
     return res_dict, l + 1
 
 
+def _dump_partial(ob):
+    """
+    serialize a functools.partial function
+
+    we use __reduce__ to obtain the necessary information such as
+        - the original function and
+        - the given parameters
+    """
+    b = bytes([_PARTIAL])
+    if not isinstance(ob.func, FunctionType):
+        raise TypeError(
+            f"Function of partial is '{type(ob.func)}'. It needs to be a generic function (type FunctionType). "
+            + "Bounded (class) methods, Types (class constructors) or callable classes are not supported."
+        )
+    func = ob.func
+    qualname = func.__qualname__
+    module = func.__module__
+    s = inspect.signature(ob.func)
+    ba = s.bind_partial(*ob.args, **ob.keywords)
+    ba.apply_defaults()
+
+    state = (module, qualname, ba.arguments)
+    b += _dump_tuple(state)
+    return b
+
+
+def _load_partial(b):
+    """convert bytes 'b' to functools.partial object"""
+    assert b[0] == _PARTIAL
+    (module, qualname, bounded_arguments), l = _load_tuple(b[1:])
+    return (module, qualname, bounded_arguments), l + 1
+
+
 def _dump(ob):
     if isinstance(ob, _spec_types):
         return _dump_spec(ob)
@@ -406,6 +443,8 @@ def _dump(ob):
         return _dump_bf_key(ob)
     elif hasattr(ob, "__getstate__"):
         return _dump_getstate(ob)
+    elif isinstance(ob, functools.partial):
+        return _dump_partial(ob)
     else:
         raise TypeError("unsupported type for dump '{}' ({})".format(type(ob), ob))
 
@@ -440,6 +479,8 @@ def _load(b):
         return _load_bf_key(b)
     elif identifier == _GETSTATE:
         return _load_getstate(b)
+    elif identifier == _PARTIAL:
+        return _load_partial(b)
     else:
         raise BFLoadError(
             "internal error (unknown identifier '{}')".format(hex(identifier))
@@ -448,14 +489,14 @@ def _load(b):
 
 def dump(ob):
     """
-        returns the binary footprint of the object 'ob' as bytes
+    returns the binary footprint of the object 'ob' as bytes
     """
     return bytes([_VERS]) + _dump(ob)
 
 
 def load(b):
     """
-        reconstruct the object from the binary footprint given as bytes 'b'
+    reconstruct the object from the binary footprint given as bytes 'b'
     """
     vers = b[0]
     if vers != _VERS:
