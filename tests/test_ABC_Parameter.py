@@ -1,9 +1,4 @@
-import sys
-import pathlib
-
-# Add parent directory to beginning of path variable
-sys.path.append(str(pathlib.Path(__file__).absolute().parent.parent))
-
+import pytest
 import binfootprint as bf
 
 
@@ -16,6 +11,7 @@ class Param(bf.ABCParameter):
         self.y = y
         self.__non_key__ = dict()
         self.__non_key__["msg"] = msg
+
 
 
 def test_abc_parameter():
@@ -43,6 +39,11 @@ def test_abc_parameter():
 
     assert fake_bf_key == bf_key
 
+
+def test_ABS_Parameter_deprecation():
+    with pytest.warns():
+        class Param_Deprec(bf.ABS_Parameter):
+            pass
 
 if __name__ == "__main__":
     test_abc_parameter()
