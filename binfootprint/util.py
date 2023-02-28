@@ -4,6 +4,7 @@ from hashlib import sha256
 from inspect import signature
 from pathlib import Path
 import shelve
+import warnings
 
 # module import
 from . import binfootprint
@@ -83,6 +84,11 @@ class ABCParameter:
             except AttributeError:
                 s += str(self.__non_key__)
         return s[:-1]
+
+
+class ABS_Parameter(ABCParameter):
+    def __init_subclass__(cls, **kwargs):
+        warnings.warn("Deprecation Warning: 'ABS_Parameter' is deprecated, use 'ABCParameter' instead!")
 
 
 class ShelveCacheDec:
