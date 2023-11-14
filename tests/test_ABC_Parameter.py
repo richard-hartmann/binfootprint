@@ -13,7 +13,6 @@ class Param(bf.ABCParameter):
         self.__non_key__["msg"] = msg
 
 
-
 def test_abc_parameter():
 
     # check if msg (__non_key__) is ignored
@@ -42,8 +41,10 @@ def test_abc_parameter():
 
 def test_ABS_Parameter_deprecation():
     with pytest.warns():
+
         class Param_Deprec(bf.ABS_Parameter):
             pass
+
 
 if __name__ == "__main__":
     test_abc_parameter()

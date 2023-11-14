@@ -146,7 +146,8 @@ In addition, the following types are supported:
 
 - `__getstate__` (python's pickle interface)
 
-can be serialized as well, given that the returned data from `__getstate__` can be serialized.
+can be serialized as well, given that the returned data from `__getstate__` can be serialized
+**and the returned data is not `None`**
 Distinction between objects is realized by adding the class name and the name of the module which defines 
 the class to the binary data.
 This in turn allows to also reconstruct the original object by means of the `__setstate__` method.
@@ -156,13 +157,20 @@ In case the `__getstate__` method is not suitable, you can implement
 - `__bfkey__`
 
 which should return the necessary data to distinguish different objects.
-The spirit of `__kfkey__` is very similar to that of `__getstate__`, although it is meant
+The spirit of `__bfkey__` is very similar to that of `__getstate__`, although it is meant
 for serialization only, and to for reconstruction the original object.
 
 Note that, if `__bfkey__` is implemented it will be used, regardless of `__getstate__`.
 
 Note: dumping older version is not supported anymore. If backwards compatibility is needed check out older
 code from git. If needed converters should/will be written.
+
+### be carefull with functions
+
+Since a function objects seem to implement `__getstate__` which, however, returns `None`, 
+dumping a function will fail.
+**Whether this makes sense, can be discussed.**
+Implementing your own callable ore using `partioal` objects can circumvent this.
 
 ## Installation
 

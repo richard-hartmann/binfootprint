@@ -88,7 +88,9 @@ class ABCParameter:
 
 class ABS_Parameter(ABCParameter):
     def __init_subclass__(cls, **kwargs):
-        warnings.warn("Deprecation Warning: 'ABS_Parameter' is deprecated, use 'ABCParameter' instead!")
+        warnings.warn(
+            "Deprecation Warning: 'ABS_Parameter' is deprecated, use 'ABCParameter' instead!"
+        )
 
 
 class ShelveCacheDec:

@@ -441,10 +441,10 @@ def _dump(ob):
         return _dump_dict(ob)
     elif hasattr(ob, "__bfkey__"):
         return _dump_bf_key(ob)
-    elif hasattr(ob, "__getstate__"):
-        return _dump_getstate(ob)
     elif isinstance(ob, functools.partial):
         return _dump_partial(ob)
+    elif hasattr(ob, "__getstate__") and ob.__getstate__() is not None:
+        return _dump_getstate(ob)
     else:
         raise TypeError("unsupported type for dump '{}' ({})".format(type(ob), ob))
 
@@ -477,10 +477,10 @@ def _load(b):
         return _load_dict(b)
     elif identifier == _BFKEY:
         return _load_bf_key(b)
-    elif identifier == _GETSTATE:
-        return _load_getstate(b)
     elif identifier == _PARTIAL:
         return _load_partial(b)
+    elif identifier == _GETSTATE:
+        return _load_getstate(b)
     else:
         raise BFLoadError(
             "internal error (unknown identifier '{}')".format(hex(identifier))
