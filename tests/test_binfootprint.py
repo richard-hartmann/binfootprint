@@ -116,7 +116,6 @@ class T(object):
 
 
 def test_getstate():
-
     ob = T(4)
     bin_ob = bfp.dump(ob)
     assert type(bin_ob) is bytes

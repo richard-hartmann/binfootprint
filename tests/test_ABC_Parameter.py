@@ -14,7 +14,6 @@ class Param(bf.ABCParameter):
 
 
 def test_abc_parameter():
-
     # check if msg (__non_key__) is ignored
     p1 = Param(3, 4.5)
     hash_hex1 = bf.hash_hex_from_object(p1)

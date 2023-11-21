@@ -53,6 +53,7 @@ print("type:", type(ob_prime))
 print("member x:", ob_prime.x)
 print("member y:", ob_prime.y)
 
+
 ##############
 # Example  4 #
 ##############
